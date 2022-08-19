@@ -6,22 +6,20 @@
       </div>
       <vuci-form uci-config="openvpn" :key="rerender" @applied="changeAuthFiles">
         <vuci-named-section class="instance-modal-form" :name="item['.name']" :card="false" v-slot="{ s }" @change-_auth="authChange">
-          <vuci-form-item-switch :uci-section="s" label="Enable" name="enable" />
+          <vuci-form-item-switch :uci-section="s" label="Enable" name="enable" defaultValue="0"/>
           <vuci-form-item-select :uci-section="s" label="Authentication" name="_auth" :options="auth"/>
-          <vuci-form-item-select v-show="advanced" :uci-section="s" label="TUN/TAP" name="tuntap" :options="tunTap" depend=""/>
-          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Protocol" name="proto" :options="protocols"/>
-          <vuci-form-item-input v-show="advanced" :uci-section="s" label="Port" name="port" rules="port"/>
-          <vuci-form-item-select v-show="advanced" :uci-section="s" label="LZO" name="lzo" :options="lzo"/>
-          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Encryption" name="cipher" :options="encryption"/>
-          <vuci-form-item-input v-show="advanced" :uci-section="s" label="Keep alive" name="keepalive" :rules="validateKeepAlive"/>
-          <!-- CLIENT -->
-          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Resolve retry" name="resolv_retry" :options="resolveRetry" v-if="s.type === 'client'"/>
+          <vuci-form-item-select v-show="advanced" :uci-section="s" label="TUN/TAP" name="tuntap" :options="tunTap" defaultValue="tun"/>
+          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Protocol" name="proto" :options="protocols" defaultValue="udp"/>
+          <vuci-form-item-input v-show="advanced" :uci-section="s" label="Port" name="port" rules="port" defaultValue="1194"/>
+          <vuci-form-item-select v-show="advanced" :uci-section="s" label="LZO" name="lzo" :options="lzo" defaultValue="none"/>
+          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Encryption" name="cipher" :options="encryption" defaultValue="BF-CBC"/>
+          <vuci-form-item-input v-show="advanced" :uci-section="s" label="Keep alive" name="keepalive" :rules="validateKeepAlive" defaultValue="10 120"/>
+          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Resolve retry" name="resolv_retry" :options="resolveRetry" v-if="s.type === 'client'" defaultValue="infinite"/>
           <vuci-form-item-input :uci-section="s" label="Remote host/IP address" name="remote" rules="ip4addr" v-if="s.type == 'client'"/>
           <vuci-form-item-input :uci-section="s" label="Remote network IP address" name="network_ip" @change="setRemoteIp" rules="ip4addr" v-if="s.type == 'client'"/>
           <vuci-form-item-input :uci-section="s" label="Remote network netmask" name="network_mask" :rules="validateNetMask" v-if="s.type == 'client'"/>
-          <!-- STATIC -->
           <vuci-form-item-input :uci-section="s" label="Local tunnel endpoint IP" name="local_ip" rules="ip4addr" depend="_auth == 'skey'"/>
-          <vuci-form-item-input :uci-section="s" label="Remote tunnel endpoint IP" name="remote_ip" :rules="validateNetIp" depend="_auth == 'skey'"/>
+          <vuci-form-item-input :uci-section="s" label="Remote tunnel endpoint IP" name="remote_ip" :rules="'ip4addr'" depend="_auth == 'skey'"/>
           <vuci-form-item-input :uci-section="s" label="Remote network IP address" name="network_ip" @change="setRemoteIp" rules="ip4addr" v-if="s.type == 'server'" depend="_auth == 'skey'"/>
           <vuci-form-item-input :uci-section="s" label="Remote network netmask" name="network_mask" :rules="validateNetMask" v-if="s.type == 'server'" depend="_auth == 'skey'"/>
           <vuci-form-item :uci-section="s" label="Static key" name="secret" depend="_auth == 'skey'">
@@ -30,14 +28,12 @@
             </a-upload>
             <span style="margin-left: 5px">{{showFileName('secret') || 'no file uploaded'}}</span>
           </vuci-form-item>
-          <!-- TLS -->
-          <vuci-form-item-select v-show="advanced" :uci-section="s" label="TLS cipher" name="tls_cipher" depend="_auth == 'tls'" :options="tlsCiphers" allow-create/>
-          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Allowed TLS ciphers" name="allowed_ciphers" depend="_auth == 'tls'" :options="tlsCiphers" allow-create/>
-          <!-- CLIENT TLS -->
+          <vuci-form-item-select v-show="advanced" :uci-section="s" label="TLS cipher" name="tls_cipher" depend="_auth == 'tls'" :options="tlsCiphers" allow-create defaultValue="all"/>
+          <vuci-form-item-select v-show="advanced" :uci-section="s" label="Allowed TLS ciphers" name="allowed_ciphers" depend="_auth == 'tls'" :options="tlsCiphers" allow-create defaultValue="all"/>
           <span v-if="item.type == 'client'">
-            <vuci-form-item-select v-show="advanced" :uci-section="s" label="HMAC authentication algorithm" name="auth" :options="hmac" depend="_auth == 'tls'"/>
-            <vuci-form-item-switch v-show="advanced" :uci-section="s" label="Additional HMAC authentication" name="hmac_auth" depend="_auth == 'tls'"/>
-            <vuci-form-item-switch v-show="advanced" :uci-section="s" label="HMAC key direction" name="hmac_key_dir" depend="_auth == 'tls'"/>
+            <vuci-form-item-select v-show="advanced" :uci-section="s" label="HMAC authentication algorithm" name="auth" :options="hmac" depend="_auth == 'tls'" defaultValue="sha1"/>
+            <vuci-form-item-switch v-show="advanced" :uci-section="s" label="Additional HMAC authentication" name="hmac_auth" depend="_auth == 'tls'" defaultValue="0"/>
+            <vuci-form-item-switch v-show="advanced" :uci-section="s" label="HMAC key direction" name="hmac_key_dir" depend="_auth == 'tls'" defaultValue="1"/>
             <vuci-form-item-input v-show="advanced" :uci-section="s" label="Private key decryption password" name="dec_pwd" depend="_auth == 'tls'"/>
             <vuci-form-item :uci-section="s" name="ca" label="Certificate authority" depend="_auth == 'tls'">
               <a-upload :before-upload="self => beforeUpload(self, 'ca')" :maxCount="1">
@@ -57,18 +53,12 @@
               </a-upload>
               <span style="margin-left: 5px">{{showFileName('clientKey') || 'no file uploaded'}}</span>
             </vuci-form-item>
-            <vuci-form-item v-show="advanced" name="hmac" label="HMAC authentication key" depend="_auth == 'tls'">
-              <a-upload action="/upload" :before-upload="self => beforeUpload(self, 'hmac')" :maxCount="1">
-                <a-button size="small" type="primary" icon="upload">Select file</a-button>
-              </a-upload>
-              <span style="margin-left: 5px">{{showFileName('hmac') || 'no file uploaded'}}</span>
-            </vuci-form-item>
           </span>
           <!-- SERVER TLS -->
           <span v-if="item.type == 'server'">
             <vuci-form-item-input :uci-section="s" label="Virtual network IP address" name="server_ip" rules="ip4addr" depend="_auth == 'tls'"/>
-            <vuci-form-item-input :uci-section="s" label="Virtual network netmask" name="server_netmask" rules="ip4addr" depend="_auth == 'tls'"/>
-            <vuci-form-item-switch v-show="advanced" :uci-section="s" label="Client to client" name="client_to_client" depend="_auth == 'tls'"/>
+            <vuci-form-item-input :uci-section="s" label="Virtual network netmask" name="server_netmask" rules="ip4addr" depend="_auth == 'tls'" defaultValue="0"/>
+            <vuci-form-item-switch v-show="advanced" :uci-section="s" label="Client to client" name="client_to_client" depend="_auth == 'tls'" defaultValue="0"/>
             <vuci-form-item-switch v-show="advanced" :uci-section="s" label="Allow duplicate certificates" name="cert_dublicate" depend="_auth == 'tls'"/>
             <vuci-form-item :uci-section="s" label="Certificate authority certificate" depend="_auth == 'tls'" name="ca">
               <a-upload action="/upload" :before-upload="self => beforeUpload(self, 'ca')" :maxCount="1">
@@ -103,6 +93,7 @@
 </template>
 <script>
 import axios from 'axios'
+import validator from '@/plugins/vuci-validator'
 export default {
   data () {
     return {
@@ -158,12 +149,6 @@ export default {
         ['sha384', 'SHA384'],
         ['sha512', 'SHA512']
       ],
-      file: 'veikia',
-      remoteIp: '',
-      selectedAuth: this.item._auth,
-      routerLanAddress: '',
-      pathNew: '/etc/vuci-upload/openvpn/',
-      fileList: [],
       fileData: {
         secret: { key: 'secret', value: '.secretstatic.key' },
         ca: { key: 'ca', value: '.caca.cert.pem' },
@@ -171,9 +156,13 @@ export default {
         clientKey: { key: 'key', value: '.keyclient.key.pem' },
         serverCert: { key: 'cert', value: '.certserver.cert.pem' },
         serverKey: { key: 'key', value: '.keyserver.key.pem' },
-        dh: { key: 'dh', value: '.dhdh.pem' },
-        hmac: { key: 'hmac', value: 'hmac.key' }
+        dh: { key: 'dh', value: '.dhdh.pem' }
       },
+      remoteIp: '',
+      selectedAuth: this.item._auth,
+      routerLanAddress: '',
+      pathNew: '/etc/vuci-upload/openvpn/',
+      fileList: [],
       advanced: false
     }
   },
@@ -246,34 +235,26 @@ export default {
       } else if (value.model === 'tls') {
         this.$uci.set('openvpn', this.item['.name'], 'local_ip')
         this.$uci.set('openvpn', this.item['.name'], 'remote_ip')
-        this.$uci.set('openvpn', this.item['.name'], 'tls_cipher', 'all')
-        this.$uci.set('openvpn', this.item['.name'], 'allowed_ciphers', 'all')
-        if (type === 'client') {
-          this.$uci.set('openvpn', this.item['.name'], 'auth', 'sha1')
-          this.$uci.set('openvpn', this.item['.name'], 'client', '1')
-          this.$uci.set('openvpn', this.item['.name'], 'tls_client', '1')
-          this.$uci.set('openvpn', this.item['.name'], 'hmac_key_dir', '1')
-        } else {
-          this.$uci.set('openvpn', this.item['.name'], '_tls_auth', 'none')
-          this.$uci.set('openvpn', this.item['.name'], 'tls_server', '1')
+        if (type === 'server') {
           this.$uci.set('openvpn', this.item['.name'], 'cert_dublicate')
           this.$uci.set('openvpn', this.item['.name'], 'client_to_client')
         }
       }
     },
     validateNetMask (value) {
-      if (!this['$vuci-validator'].netmask4(value)) {
+      if (!validator.netmask4(value)) {
         return 'Netmask is invalid!'
       }
       if (this.remoteIp == null || this.remoteIp === '') {
-        return
+        return ''
       }
       if ((this.ip2int(this.routerLanAddress) & value) !== (this.ip2int(this.remoteIp) & value)) {
         return 'Netmask is in incorrect size!'
       }
     },
     validateNetIp (value) {
-      if (!this['$vuci-validator'].ip4addr(value)) {
+      console.log(value)
+      if (!validator.ip4addr(value)) {
         return 'IP is invalid!'
       }
       if (value === this.routerLanAddress) {
@@ -311,7 +292,6 @@ export default {
       if (auth === 'skey') {
         options.push('ca', 'cert', 'key')
         if (type === 'server') { options.push('dh') }
-        if (type === 'client') { options.push('hmac') }
       }
       if (auth === 'tls') { options.push('secret') }
       return options

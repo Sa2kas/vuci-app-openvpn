@@ -16,7 +16,7 @@
         </template>
         <template #edit="{ s }">
           <a-button type="primary" size="small" style="margin-right: 5px" @click="edit(s)">{{ $t('Edit') }}</a-button>
-          <a-popconfirm @confirm="deleteI(s['.name'])" placement="left" title="Really delete this instance?">
+          <a-popconfirm @confirm="del(s['.name'], s)" placement="left" title="Are you sure you want to delete this instance?">
             <a-button type="danger" size="small">{{ $t('Delete') }}</a-button>
           </a-popconfirm>
         </template>
@@ -88,10 +88,9 @@ export default {
         })
       })
     },
-    deleteI (sid) {
-      const auth = this.$uci.get('openvpn', sid, '_auth')
-      const options = this.filesArray(auth)
-      this.$rpc.call('openvpn', 'updateIns', { options: options, sid: sid }).then(() => {
+    del (sid, item) {
+      console.log(item)
+      return this.$rpc.call('openvpn', 'deleteInstance', { item: item }).then(() => {
         this.$uci.del(this.configFile, sid)
         this.$uci.save().then(() => {
           this.$uci.apply().then(() => {
@@ -99,17 +98,6 @@ export default {
           })
         })
       })
-    },
-    filesArray (auth) {
-      const options = []
-      const type = this.$uci.get('openvpn', this.item, 'type')
-      if (auth === 'tls') {
-        options.push('ca', 'cert', 'key')
-        if (type === 'server') { options.push('dh') }
-        if (type === 'client') { options.push('hmac') }
-      }
-      if (auth === 'skey') { options.push('secret') }
-      return options
     },
     reRender () {
       this.rerender = !this.rerender
@@ -123,50 +111,34 @@ export default {
       this.item = {}
       this.getServiceList()
     },
-    handleAdd () {
+    validateName () {
       if (!this.name) {
-        this.$message.error('Name cannot be empty')
-        return
+        return 'Name cannot be empty'
       }
       if (!this.role) {
-        this.$message.error('Need to select role')
-        return
+        return 'Need to select role'
       }
       if (this.name.length > 15) {
-        this.$message.error('Name is too long')
-        return
+        return 'Name is too long'
       }
       const instances = this.$uci.sections(this.configFile, 'openvpn')
       for (let index = 0; index < instances.length; index++) {
         if (instances[index]['.name'] === this.name) {
-          this.$message.error('Name already used')
-          return
+          return 'Name already used'
         }
         if (instances[index].type === 'server' && this.role === 'server') {
-          this.$message.error('Server instance already exists')
-          return
+          return 'Server instance already exists'
         }
+      }
+    },
+    handleAdd () {
+      if (this.validateName) {
+        this.$message.error(this.validateName)
+        return
       }
       this.$uci.add(this.configFile, 'openvpn', this.name)
       this.$uci.set(this.configFile, this.name, '_name', `${this.name}_${this.role === 'server' ? 'server' : 'client'}`)
-      this.$uci.set(this.configFile, this.name, 'cipher', 'BF-CBC')
-      this.$uci.set(this.configFile, this.name, 'persist_key', '1')
-      this.$uci.set(this.configFile, this.name, 'port', '1194')
-      this.$uci.set(this.configFile, this.name, 'dev', `tun_${this.role === 'server' ? 's' : 'c'}_${this.name}`)
-      this.$uci.set(this.configFile, this.name, 'persist_tun', '1')
-      this.$uci.set(this.configFile, this.name, 'verb', '5')
       this.$uci.set(this.configFile, this.name, 'type', this.role)
-      this.$uci.set(this.configFile, this.name, 'proto', 'udp')
-      this.$uci.set(this.configFile, this.name, 'enable', '0')
-      this.$uci.set(this.configFile, this.name, 'lzo', 'none')
-      switch (this.role) {
-        case 'server':
-          break
-        case 'client':
-          this.$uci.set(this.configFile, this.name, 'nobind', '1')
-          this.$uci.set(this.configFile, this.name, 'resolv_retry', '0')
-          break
-      }
       this.$uci.save().then(() => {
         this.$uci.apply().then(() => {
           this.load()
@@ -181,14 +153,16 @@ export default {
       if (s.enable === '0') return 'Disabled'
       switch (s.type) {
         case 'server':
-          if (this.ubusData[s._name] == null) return 'Inactive'
-          if (s.enable === '1' && this.ubusData[s._name].running) return 'Active'
-          else return 'Inactive'
+          if (this.ubusData) {
+            if (!this.ubusData[s._name]) return 'Inactive'
+            if (s.enable === '1' && this.ubusData[s._name].running) return 'Active'
+          } else return 'Inactive'
+          break
         case 'client':
-          if (s.enable === '1' && s.status != null) return 'Connected'
+          if (s.enable === '1' && s.status) return 'Connected'
           else return 'Disconnected'
         default:
-          return 'Not working'
+          return 'Inactive'
       }
     },
     getServiceList () {
@@ -204,3 +178,6 @@ export default {
   }
 }
 </script>
+<style>
+
+</style>
